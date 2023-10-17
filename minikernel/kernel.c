@@ -205,10 +205,35 @@ static void int_terminal(){
  * Tratamiento de interrupciones de reloj
  */
 static void int_reloj(){
+    printk("-> TRATANDO INT. DE RELOJ\n");
+    BCPptr dormidoActual = lista_dormidos.primero;
+    while(dormidoActual != NULL){
+        (dormidoActual->segundosDormido) --;
+        if(dormidoActual->segundosDormido < 0){
+            halt();
+        }
+        if(dormidoActual->segundosDormido == 0){
+            dormidoActual->estado = LISTO;
 
-	printk("-> TRATANDO INT. DE RELOJ\n");
+            //Eliminar dormidoActual de la lista de bloqueados
+            BCPptr buscar = lista_dormidos.primero;
+            //Buscar BCP anterior
+            while(dormidoActual != buscar->siguiente){
+                buscar = buscar->siguiente;
+            }
+            buscar->siguiente = dormidoActual->siguiente;
+            dormidoActual->siguiente = NULL;
 
-        return;
+            //Añadir dormidoActual a lista de listos
+            lista_listos.ultimo->siguiente = dormidoActual;
+            lista_listos.ultimo = dormidoActual;
+
+        }
+        dormidoActual = dormidoActual->siguiente;
+    }
+
+
+    return;
 }
 
 /*
@@ -330,21 +355,36 @@ int sis_terminar_proceso(){
 
 
 //TODO llamada dormir
-int sis_dormir(unsigned int segundos){
+int sis_dormir(){
+    unsigned int segundos =(unsigned int) leer_registro(1);
+
+    //Fijar nivel 1
+    fijar_nivel_int(NIVEL_1);
+    //TODO Cambiar código por funicones de insertar y eliminar
+
+    //Variable local proceso a dormir
     BCP* proceso_dormir = p_proc_actual;
+
+    //Eliminar el proceso de la lista de listos
+    lista_listos.primero =  lista_listos.primero->siguiente;
+
+    //Cambiar estado del proceso
     proceso_dormir->estado = BLOQUEADO;
-    proceso_dormir->segundosDormido = segundos;
+    proceso_dormir->segundosDormido = segundos * TICK;
 
-    lista_dormidos->ultimo.siguiente = proceso_dormir;
-    lista_dormidos->ultimo = proceso_dormir;
+    //Añadir proceso a lista de bloqueados
+    lista_dormidos.ultimo->siguiente = proceso_dormir;
+    lista_dormidos.ultimo = proceso_dormir;
 
-
+    //Seleccionar nuevo proceso a ejeuctar
     p_proc_actual = planificador();
 
-    cambio_contexto(&proceso_dormir->contexto_regs, &p_proc_actual->contexto_regs)
+    //Cambiar contexto
+    cambio_contexto(&proceso_dormir->contexto_regs, &p_proc_actual->contexto_regs);
 
-
-
+    //Vuelves a permitir interrupciones
+    fijar_nivel_int(NIVEL_3);
+    return 0;
 }
 
 
@@ -368,7 +408,8 @@ int main(){
 	instal_man_int(INT_RELOJ, int_reloj); 
 	instal_man_int(INT_TERMINAL, int_terminal); 
 	instal_man_int(LLAM_SIS, tratar_llamsis); 
-	instal_man_int(INT_SW, int_sw); 
+	instal_man_int(INT_SW, int_sw);
+
 
 	iniciar_cont_int();		/* inicia cont. interr. */
 	iniciar_cont_reloj(TICK);	/* fija frecuencia del reloj */
