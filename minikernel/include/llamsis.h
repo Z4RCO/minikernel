@@ -1,9 +1,9 @@
 /*
  *  minikernel/kernel/include/llamsis.h
  *
- *  Minikernel. Versión 1.0
+ *  Minikernel. Versiï¿½n 1.0
  *
- *  Fernando Pérez Costoya
+ *  Fernando Pï¿½rez Costoya
  *
  */
 
@@ -19,11 +19,12 @@
 #define _LLAMSIS_H
 
 /* Numero de llamadas disponibles */
-#define NSERVICIOS 3
+#define NSERVICIOS 4
 
 #define CREAR_PROCESO 0
 #define TERMINAR_PROCESO 1
 #define ESCRIBIR 2
+#define DORMIR 3
 
 #endif /* _LLAMSIS_H */
 

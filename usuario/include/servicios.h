@@ -1,9 +1,9 @@
 /*
  *  usuario/include/servicios.h
  *
- *  Minikernel. Versión 1.0
+ *  Minikernel. Versiï¿½n 1.0
  *
- *  Fernando Pérez Costoya
+ *  Fernando Pï¿½rez Costoya
  *
  */
 
@@ -19,7 +19,7 @@
 #ifndef SERVICIOS_H
 #define SERVICIOS_H
 
-/* Evita el uso del printf de la bilioteca estándar */
+/* Evita el uso del printf de la bilioteca estï¿½ndar */
 #define printf escribirf
 
 /* Funcion de biblioteca */
@@ -29,6 +29,7 @@ int escribirf(const char *formato, ...);
 int crear_proceso(char *prog);
 int terminar_proceso();
 int escribir(char *texto, unsigned int longi);
+int dormir(unsigned int segundos);
 
 #endif /* SERVICIOS_H */
 
