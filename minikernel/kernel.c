@@ -216,17 +216,10 @@ static void int_reloj(){
             dormidoActual->estado = LISTO;
 
             //Eliminar dormidoActual de la lista de bloqueados
-            BCPptr buscar = lista_dormidos.primero;
-            //Buscar BCP anterior
-            while(dormidoActual != buscar->siguiente){
-                buscar = buscar->siguiente;
-            }
-            buscar->siguiente = dormidoActual->siguiente;
-            dormidoActual->siguiente = NULL;
+            eliminar_elem(&lista_dormidos,dormidoActual);
 
             //Añadir dormidoActual a lista de listos
-            lista_listos.ultimo->siguiente = dormidoActual;
-            lista_listos.ultimo = dormidoActual;
+            insertar_ultimo(&lista_listos,dormidoActual);
 
         }
         dormidoActual = dormidoActual->siguiente;
@@ -360,21 +353,20 @@ int sis_dormir(){
 
     //Fijar nivel 1
     fijar_nivel_int(NIVEL_1);
-    //TODO Cambiar código por funicones de insertar y eliminar
 
     //Variable local proceso a dormir
     BCP* proceso_dormir = p_proc_actual;
 
     //Eliminar el proceso de la lista de listos
-    lista_listos.primero =  lista_listos.primero->siguiente;
+    eliminar_primero(&lista_listos);
+
 
     //Cambiar estado del proceso
     proceso_dormir->estado = BLOQUEADO;
     proceso_dormir->segundosDormido = segundos * TICK;
 
     //Añadir proceso a lista de bloqueados
-    lista_dormidos.ultimo->siguiente = proceso_dormir;
-    lista_dormidos.ultimo = proceso_dormir;
+    insertar_ultimo(&lista_dormidos,proceso_dormir);
 
     //Seleccionar nuevo proceso a ejeuctar
     p_proc_actual = planificador();
