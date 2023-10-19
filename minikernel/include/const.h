@@ -79,5 +79,10 @@
 /* direcci�n de puerto de E/S del terminal */
 #define DIR_TERMINAL 1
 
+
+//TODO Constantes mutex
+#define NO_RECURSIVO 0
+#define RECURSIVO 1
+
 #endif /* _CONST_H */
 

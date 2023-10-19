@@ -41,11 +41,17 @@ typedef struct BCP_t {
 
     //TODO nuevo campo contador de segundos
     unsigned int segundosDormido;    /*Segundos que tiene que estar dormido el proceso*/
+
+    //TODO nuevos campos mutex
+    //TODO Inicializar cosas
+    int descriptoresMutex[NUM_MUT_PROC]; /*Lista de descriptores de mutex asociada al proceso*/
+
 } BCP;
 
-typedef struct Mutex(){
-
-}
+typedef struct Mutex_t{
+    char nombre[MAX_NOM_MUT];
+    int
+}Mutex;
 
 
 
@@ -104,20 +110,33 @@ typedef struct{
 int sis_crear_proceso();
 int sis_terminar_proceso();
 int sis_escribir();
+
+//TODO servicios dormir
 int sis_dormir();
 int sis_obtener_id_pr();
+//TODO servicio mutex
+int sis_crear_mutex();
+int sis_abrir_mutex();
+int sis_lock();
+int sis_unlock();
+int sis_cerrar_mutex();
 
 
 
 /*
  * Variable global que contiene las rutinas que realizan cada llamada
  */
-//TODO nuevo servicio dormir
+//TODO nuevo
 servicio tabla_servicios[NSERVICIOS]={	{sis_crear_proceso},
 					{sis_terminar_proceso},
 					{sis_escribir},
                     {sis_dormir},
-                    {sis_obtener_id_pr}};
+                    {sis_obtener_id_pr},
+                    {sis_crear_mutex},
+                    {sis_abrir_mutex},
+                    {sis_lock},
+                    {sis_unlock},
+                    {sis_cerrar_mutex}}
 
 #endif /* _KERNEL_H */
 

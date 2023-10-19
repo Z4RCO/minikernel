@@ -14,6 +14,7 @@
  */
 
 #include "kernel.h"	/* Contiene defs. usadas por este modulo */
+#include <string.h> /*Funciones para trabajo con cadenas
 
 /*
  *
@@ -380,10 +381,59 @@ int sis_dormir(){
     return 0;
 }
 
+
+//TODO servicio obtener_id_pr
+/*
+ *
+ */
 int sis_obtener_id_pr(){
     return p_proc_actual->id;
 }
 
+//TODO servicio crear_mutex
+/*
+ *
+ */
+int sis_crear_mutex(){
+    char *nombre = (char *)leer_registro(1);
+    int tipo = (int)leer_registro(2);
+
+    //Si el tipo es erroneo, finalizar con error -1
+    if(tipo != RECURSIVO && tipo != NO_RECURSIVO)return -1;
+
+
+    Mutex mutex = lista_mutex->primero;
+    int size = 0;
+    int *mutexes;
+    int descriptoresLibres, i, encontrado = 0;
+    while(mutex->siguiente != NULL && strcmp(nombre, mutex->nombre) != 0){
+        mutex = mutex->siguiente;
+        size++;
+    }
+    //Si ya existe otro con ese nombre, finalizar con error
+    if(!strcmp(nombre, mutex->nombre))return -2;
+
+    //si la lista está llena, finalizar con error -3
+    if(size == NUM_MUT)return -3;
+
+    //comprobar descriptores libres para el proceso
+    mutexes = p_proc_actual->descriptoresMutex;
+    descriptoresLibres = MAX_MUT_PROC;
+    i = 0;
+    while(descriptoresLibres != 0){
+        if(mutexes[i] != -1){
+            i++;
+            descriptoresLibres--;
+        } else{
+            return -4;
+        }
+    }
+
+
+
+
+    //Gestionar nombre largo
+}
 
 
 

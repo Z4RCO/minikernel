@@ -48,5 +48,9 @@ int dormir(unsigned int segundos){
 }
 
 int obtener_id_pr(){
-    return llamsis(OBTENERIDPR, 0);
+    return llamsis(OBTENER_ID_PR, 0);
+}
+
+int crear_mutex(char *nombre, int tipo){
+    return llamsis(CREAR_MUTEX, 2, (long)nombre, (long)tipo);
 }
