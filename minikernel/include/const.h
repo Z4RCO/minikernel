@@ -1,9 +1,9 @@
 /*
  *  minikernel/include/const.h
  *
- *  Minikernel. Versión 1.0
+ *  Minikernel. Versiï¿½n 1.0
  *
- *  Fernando Pérez Costoya
+ *  Fernando Pï¿½rez Costoya
  *
  */
 
@@ -37,7 +37,7 @@
 #define BLOQUEADO 3
 
 /*
- * Niveles de ejecución del procesador. 
+ * Niveles de ejecuciï¿½n del procesador. 
  */
 #define NUM_NIVELES 3
 #define NIVEL_1 1 /* Int. SW */
@@ -62,7 +62,7 @@
 #define INT_SW 5	/* vector usado para interrupciones software */
 
 /* frecuencia de reloj requerida (ticks/segundo) */
-#define TICK 100
+#define TICK 1
 
 /* constante usada en implementacion de round robin */
 #define TICKS_POR_RODAJA 10
@@ -74,9 +74,9 @@
 #define MAX_NOM_MUT 8 /* longitud maxima de un nombre de mutex */
 
 /* constante usada en implementacion de manejador de terminal */
-#define TAM_BUF_TERM 8 /* tamaño del buffer del terminal */
+#define TAM_BUF_TERM 8 /* tamaï¿½o del buffer del terminal */
 
-/* dirección de puerto de E/S del terminal */
+/* direcciï¿½n de puerto de E/S del terminal */
 #define DIR_TERMINAL 1
 
 #endif /* _CONST_H */

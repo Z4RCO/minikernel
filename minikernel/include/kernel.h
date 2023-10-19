@@ -98,6 +98,7 @@ int sis_crear_proceso();
 int sis_terminar_proceso();
 int sis_escribir();
 int sis_dormir();
+int sis_obtener_id_pr();
 
 /*
  * Variable global que contiene las rutinas que realizan cada llamada
@@ -106,7 +107,8 @@ int sis_dormir();
 servicio tabla_servicios[NSERVICIOS]={	{sis_crear_proceso},
 					{sis_terminar_proceso},
 					{sis_escribir},
-                    {sis_dormir}};
+                    {sis_dormir},
+                    {sis_obtener_id_pr}};
 
 #endif /* _KERNEL_H */
 

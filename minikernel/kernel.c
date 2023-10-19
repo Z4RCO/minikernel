@@ -376,9 +376,13 @@ int sis_dormir(){
 
     //Vuelves a permitir interrupciones
     fijar_nivel_int(NIVEL_3);
+
     return 0;
 }
 
+int sis_obtener_id_pr(){
+    return p_proc_actual->id;
+}
 
 
 
