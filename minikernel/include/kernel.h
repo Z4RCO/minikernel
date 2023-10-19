@@ -50,7 +50,11 @@ typedef struct BCP_t {
 
 typedef struct Mutex_t{
     char nombre[MAX_NOM_MUT];
-    int
+    int tipo; //recursivo o no
+    int proc_esperando; // contador de procesos esperando
+    lista_BCPs lista_Procesos_Esperando; //procesos esperando
+    int estado; //bloqueado o desbloqueado;
+
 }Mutex;
 
 
