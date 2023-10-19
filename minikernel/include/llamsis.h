@@ -26,6 +26,11 @@
 #define ESCRIBIR 2
 #define DORMIR 3
 #define OBTENERIDPR 4
+#define CREARMUTEX 5
+#define ABRIRMUTEX 6
+#define LOCK 7
+#define UNLOCK 8
+#define CERRARMUTEX 9
 
 #endif /* _LLAMSIS_H */
 

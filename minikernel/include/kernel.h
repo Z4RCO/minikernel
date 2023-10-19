@@ -107,6 +107,8 @@ int sis_escribir();
 int sis_dormir();
 int sis_obtener_id_pr();
 
+
+
 /*
  * Variable global que contiene las rutinas que realizan cada llamada
  */
