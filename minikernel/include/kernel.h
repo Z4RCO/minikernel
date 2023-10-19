@@ -18,6 +18,7 @@
 #ifndef _KERNEL_H
 #define _KERNEL_H
 
+
 #include "const.h"
 #include "HAL.h"
 #include "llamsis.h"
@@ -41,6 +42,12 @@ typedef struct BCP_t {
     //TODO nuevo campo contador de segundos
     unsigned int segundosDormido;    /*Segundos que tiene que estar dormido el proceso*/
 } BCP;
+
+typedef struct Mutex(){
+
+}
+
+
 
 /*
  *
