@@ -97,6 +97,8 @@ lista_BCPs lista_listos= {NULL, NULL};
  */
 lista_BCPs lista_dormidos= {NULL, NULL};
 
+lista_BCPs lista_bloqueados_mutex= {NULL, NULL};
+
 /*
  *
  * Definici�n del tipo que corresponde con una entrada en la tabla de
