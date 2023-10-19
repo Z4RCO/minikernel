@@ -420,14 +420,15 @@ int sis_crear_mutex(){
     mutexes = p_proc_actual->descriptoresMutex;
     descriptoresLibres = MAX_MUT_PROC;
     i = 0;
-    while(descriptoresLibres != 0){
+    while(i < MAX_MUT_PROC){
         if(mutexes[i] != -1){
-            i++;
             descriptoresLibres--;
-        } else{
-            return -4;
         }
+        i++;
     }
+    //Si no quedan descriptores libres, devuelves con error -4
+    if(descriptoresLibres == 0)return -4;
+
 
 
 
