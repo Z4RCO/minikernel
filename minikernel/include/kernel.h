@@ -48,14 +48,19 @@ typedef struct BCP_t {
 
 } BCP;
 
+typedef struct Mutex_t *Mutexptr;
 typedef struct Mutex_t{
+    int descriptor;             //Descriptor del mutex
     char nombre[MAX_NOM_MUT];
-    int tipo; //recursivo o no
-    int proc_esperando; // contador de procesos esperando
-    lista_BCPs lista_Procesos_Esperando; //procesos esperando
-    int estado; //bloqueado o desbloqueado;
+    int tipo;                   //recursivo o no
+    int proc_esperando;        // contador de procesos esperando
+    lista_BCPs lista_procesos_esperando; //procesos esperando
+    int estado;             /*bloqueado o desbloqueado*/
+    Mutexptr siguiente;
 
 }Mutex;
+
+
 
 
 
@@ -71,6 +76,16 @@ typedef struct{
 	BCP *primero;
 	BCP *ultimo;
 } lista_BCPs;
+
+
+
+
+
+typedef struct{
+    Mutex *primero;
+    Mutex *ultimo;
+    int size;
+} lista_Mutex;
 
 
 /*
@@ -96,6 +111,12 @@ lista_BCPs lista_listos= {NULL, NULL};
  * Variable global que representa la cola de procesos dormidos
  */
 lista_BCPs lista_dormidos= {NULL, NULL};
+
+//TODO nueva lista mutex
+/*
+ * Variable global que representa la lista de mutex del sistema
+ */
+lista_Mutex lista_mutex = {NULL,NULL};
 
 /*
  *

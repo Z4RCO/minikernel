@@ -94,6 +94,74 @@ static void eliminar_elem(lista_BCPs *lista, BCP * proc){
 	}
 }
 
+
+
+//TODO Funciones para trabajar con listas de Mutex
+/* mismas funciones que arriba pero para mutex*/
+static int insertar_ultimo_mutex(lista_Mutex *lista, Mutex * mutex){
+    int posicion;
+    if (lista->primero==NULL)
+        lista->primero= mutex;
+    else
+        lista->ultimo->siguiente=mutex;
+    if(++lista->size > NUM_MUT){
+        lista->ultimo->siguiente = NULL;
+        posicion = -1;
+    }
+    else{
+        lista->ultimo= mutex;
+        mutex->siguiente=NULL;
+        posicion = lista->size;
+    }
+    return posicion;
+}
+
+/*
+ * Elimina el primer BCP de la lista.
+ */
+static void eliminar_primero_mutex(lista_Mutex *lista){
+
+    if (lista->ultimo==lista->primero){}
+        lista->ultimo=NULL;
+    lista->primero=lista->primero->siguiente;
+    lista->size--;
+}
+
+/*
+ * Elimina un determinado BCP de la lista.
+ */
+static void eliminar_elem_mutex(lista_Mutex *lista, Mutexptr mutex){
+   Mutexptr maux = lista->primero;
+
+    if (maux==mutex)
+        eliminar_primero(lista);
+    else {
+        for ( ; ((maux) && (maux->siguiente!=mutex));
+                maux=maux->siguiente);
+        if (maux) {
+            if (lista->ultimo==maux->siguiente)
+                lista->ultimo=maux;
+            maux->siguiente=maux->siguiente->siguiente;
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
  *
  * Funciones relacionadas con la planificacion
@@ -395,6 +463,7 @@ int sis_obtener_id_pr(){
  *
  */
 int sis_crear_mutex(){
+    fijar_nivel_int(1);
     char *nombre = (char *)leer_registro(1);
     int tipo = (int)leer_registro(2);
 
@@ -402,38 +471,56 @@ int sis_crear_mutex(){
     if(tipo != RECURSIVO && tipo != NO_RECURSIVO)return -1;
 
 
-    Mutex mutex = lista_mutex->primero;
+    Mutex mutexAuxiliar = lista_mutex->primero;
     int size = 0;
     int *mutexes;
-    int descriptoresLibres, i, encontrado = 0;
-    while(mutex->siguiente != NULL && strcmp(nombre, mutex->nombre) != 0){
-        mutex = mutex->siguiente;
+    int descriptoresLibres, i = 0, encontrado = 0;
+    while(mutexAuxiliar->siguiente != NULL && strcmp(nombre, mutexAuxiliar->nombre) != 0){
+        mutexAuxiliar = mutexAuxiliar->siguiente;
         size++;
     }
-    //Si ya existe otro con ese nombre, finalizar con error
-    if(!strcmp(nombre, mutex->nombre))return -2;
+    //Si el nombre es más largo que el máximo, finalizar con error -2
+    if(strlen(nombre) > MAX_NOM_MUT)return -2;
 
-    //si la lista está llena, finalizar con error -3
-    if(size == NUM_MUT)return -3;
+    //Si ya existe otro con ese nombre, finalizar con error -3
+    if(!strcmp(nombre, mutex->nombre))return -3;
 
     //comprobar descriptores libres para el proceso
     mutexes = p_proc_actual->descriptoresMutex;
     descriptoresLibres = MAX_MUT_PROC;
-    i = 0;
     while(i < MAX_MUT_PROC){
         if(mutexes[i] != -1){
             descriptoresLibres--;
         }
         i++;
     }
-    //Si no quedan descriptores libres, devuelves con error -4
-    if(descriptoresLibres == 0)return -4;
+    //Si no quedan descriptores libres, devuelves con error -5
+    if(descriptoresLibres == 0)return -5;
 
+    //si la lista está llena, esperar a que se libere
+    if(size == NUM_MUT){
+        p_proc_actual->estado = BLOQUEADO;
+        insertar_ultimo(&lista_bloqueados_mutex,p_proc_actual);
+        BCPptr proceso_bloquear = p_proc_actual;
+        p_proc_actual = planificador();
+        cambio_contexto(proceso_bloquear->contexto_regs,p_proc_actual->contexto_regs);
+        fijar_nivel_int(3);
+        return 0;
+    }
 
+    // Constructor del mutex
+    Mutexptr mutex = (Mutexptr)malloc(sizeof(Mutex));
+    mutex->nombre = nombre;
+    mutex->tipo = tipo;
+    mutex->proc_esperando = 0;
+    mutex->lista_procesos_esperando = (lista_BCP)malloc(sizeof(lista_BCP));
+    mutex->estado = UNLOCK;
+    mutex->descriptor = descriptoresLibres[0];
+    eliminar_primero(descriptoresLibres);
 
+    //TODO HACER EL MUTEX
 
-
-    //Gestionar nombre largo
+    fijar_nivel_int(1);
 }
 
 
