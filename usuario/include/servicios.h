@@ -31,6 +31,13 @@ int terminar_proceso();
 int escribir(char *texto, unsigned int longi);
 int dormir(unsigned int segundos);
 int obtener_id_pr();
+int crear_mutex(char* nombre, int tipo);
+int abrir_mutex(char* nombre);
+int lock(unsigned int mutexid);
+int unlock(unsigned int mutexid);
+int cerrar_mutex(unsigned int mutexid);
 
 #endif /* SERVICIOS_H */
 
+#define NO_RECURSIVO 0
+#define RECURSIVO 1

@@ -31,6 +31,8 @@
  */
 typedef struct BCP_t *BCPptr;
 
+
+
 typedef struct BCP_t {
     int id;				/* ident. del proceso */
     int estado;			/* TERMINADO|LISTO|EJECUCION|BLOQUEADO*/
@@ -48,23 +50,6 @@ typedef struct BCP_t {
 
 } BCP;
 
-typedef struct Mutex_t{
-    char nombre[MAX_NOM_MUT];
-    int tipo;                               //recursivo o no
-    int bloqueos;                           //contador de veces que se bloquea
-    int proc_esperando;                     // contador de procesos esperando
-    lista_BCPs lista_Procesos_Esperando;    // procesos esperando
-    int estado;                             // bloqueado o desbloqueado;
-    BCPptr proceso;                         // Proceso propietario
-
-}Mutex;
-
-//TODO puntero a mutex
-typedef struct Mutex_t *Mutexptr;
-
-
-
-
 
 
 
@@ -77,9 +62,33 @@ typedef struct Mutex_t *Mutexptr;
  */
 
 typedef struct{
-	BCP *primero;
-	BCP *ultimo;
+    BCP *primero;
+    BCP *ultimo;
 } lista_BCPs;
+
+
+typedef struct Mutex_t{
+    char nombre[MAX_NOM_MUT];
+    int tipo;                               // Recursivo o no
+    int bloqueos;                           // contador de veces que se bloquea
+    int proc_esperando;                     // contador de procesos esperando
+    lista_BCPs lista_Procesos_Esperando;    // procesos esperando
+    int estado;                             // bloqueado o desbloqueado;
+    BCPptr proceso;                         // Proceso propietario
+    int id;                                 // Desciptor de mutex
+    int contadorProcesos;                   // Procesos con el mutex abierto
+
+}Mutex;
+
+//TODO puntero a mutex
+typedef struct Mutex_t *Mutexptr;
+
+
+
+
+
+
+
 
 
 /*
@@ -104,10 +113,10 @@ lista_BCPs lista_listos= {NULL, NULL};
 /*
  * Variable global que representa la cola de procesos dormidos
  */
-lista_BCPs lista_dormidos= {NULL, NULL}
+lista_BCPs lista_dormidos= {NULL, NULL};
 
 //TODO nueva lista de mutex del sistema
-Mutex lista_mutex[NUM_MUT]; //TODO inicializar lista mutex
+Mutexptr lista_mutex[NUM_MUT]; //TODO inicializar lista mutex
 
 
 

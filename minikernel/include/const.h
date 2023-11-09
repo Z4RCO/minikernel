@@ -84,8 +84,8 @@
 #define NO_RECURSIVO 0
 #define RECURSIVO 1
 
-#define LOCK 0
-#define UNLOCK 1
+#define LOCKED 0
+#define UNLOCKED 1
 
 #endif /* _CONST_H */
 
