@@ -1,9 +1,9 @@
 /*
  * usuario/creador1.c
  *
- *  Minikernel. Versión 1.0
+ *  Minikernel. Versiï¿½n 1.0
  *
- *  Fernando Pérez Costoya
+ *  Fernando Pï¿½rez Costoya
  *
  */
 
@@ -16,10 +16,10 @@
 int main(){
 
 	printf("creador1 comienza\n");
-
+    printf("Antes de crear 1\n");
 	if (crear_mutex("m1", NO_RECURSIVO)<0)
 		printf("error creando m1. NO DEBE SALIR\n");
-
+    printf("Despues de crear 1\n");
 	if (crear_mutex("m1", NO_RECURSIVO)<0)
 		printf("error creando m1. DEBE SALIR\n");
 
@@ -37,6 +37,6 @@ int main(){
 
 	printf("creador1 termina\n");
 
-	/* cierre implícito de mutex */
+	/* cierre implï¿½cito de mutex */
 	return 0;
 }

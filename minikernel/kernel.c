@@ -16,6 +16,7 @@
 #include "kernel.h"    /* Contiene defs. usadas por este modulo */
 #include <string.h> /*Funciones para trabajo con cadenas */
 #include <stdlib.h>
+#include <stdio.h>
 
 /*
  *
@@ -265,7 +266,7 @@ static void int_sw() {
 static int crear_tarea(char *prog) {
     void *imagen, *pc_inicial;
     int error = 0;
-    int proc;
+    int proc, i;
     BCP *p_proc;
 
     proc = buscar_BCP_libre();
@@ -285,6 +286,11 @@ static int crear_tarea(char *prog) {
                            &(p_proc->contexto_regs));
         p_proc->id = proc;
         p_proc->estado = LISTO;
+
+        p_proc->segundosDormido = 0;
+        for(i = 0; i < NUM_MUT_PROC; i++){
+            p_proc->descriptoresMutex[i] = -1;
+        }
 
         /* lo inserta al final de cola de listos */
         insertar_ultimo(&lista_listos, p_proc);
@@ -404,28 +410,31 @@ int sis_crear_mutex() {
     if (strlen(nombre) > MAX_NOM_MUT)
         return -2;          //Si el nombre es más largo que el máximo, finalizar con error -2
 
+
     for (i = 0; i < NUM_MUT && !encontrado; i++) {
-        if (&lista_mutex[i] != NULL) {
+        if (lista_mutex[i] != NULL) {
             if (!strcmp(nombre, lista_mutex[i]->nombre)) {
                 encontrado = 1;
             }
+            size++;
         }
-        size++;
     }
-    if(encontrado)return -1;     // Si existe otro mutex con ese nombre, finalizar con error
 
+    if (encontrado)return -1;     // Si existe otro mutex con ese nombre, finalizar con error
 
 
     //comprobar descriptores libres para el proceso
-    int* mutexes = p_proc_actual->descriptoresMutex;
+    int *mutexes = p_proc_actual->descriptoresMutex;
     int descriptoresLibres = NUM_MUT_PROC;
+    i = 0;
     while (i < NUM_MUT_PROC) {
         if (mutexes[i] != -1) {
             descriptoresLibres--;
         }
         i++;
     }
-    if (descriptoresLibres == 0)return -5;               //Si no quedan descriptores libres, devuelves con error -5
+    if (descriptoresLibres <= 0)return -5;               //Si no quedan descriptores libres, devuelves con error -5
+
 
     //si la lista está llena, esperar a que se libere
     if (size == NUM_MUT) {
@@ -443,7 +452,6 @@ int sis_crear_mutex() {
     mutex->nombre = nombre;
     mutex->tipo = tipo;
     mutex->proc_esperando = 0;
-    mutex->lista_Procesos_Esperando = (lista_BCPs) malloc(sizeof(lista_BCPs));
     mutex->estado = UNLOCKED;
 
 
@@ -454,6 +462,7 @@ int sis_crear_mutex() {
         if (lista_mutex[i] == NULL)encontrado = 1;
         posicion = i;
     }
+
     mutex->id = posicion;
     lista_mutex[posicion] = mutex;
 
@@ -463,7 +472,7 @@ int sis_crear_mutex() {
 
 int sis_abrir_mutex() {
     int nivel = fijar_nivel_int(1);
-    char *nombre = (char *)leer_registro(1);
+    char *nombre = (char *) leer_registro(1);
     int encontrado = 0, i;
     Mutexptr mutex = NULL;
     for (i = 0; i < NUM_MUT && !encontrado; i++) {
@@ -484,7 +493,7 @@ int sis_abrir_mutex() {
 
 int sis_lock() {
     int nivel = fijar_nivel_int(1);
-    unsigned int mutexId = (unsigned int)leer_registro(1);
+    unsigned int mutexId = (unsigned int) leer_registro(1);
     int i, encontrado = 0;
     Mutexptr mutex = NULL;
 
@@ -540,7 +549,7 @@ int sis_lock() {
 }
 
 int sis_unlock() {
-    unsigned int mutexId = (unsigned int)leer_registro(1);
+    unsigned int mutexId = (unsigned int) leer_registro(1);
     int nivel = fijar_nivel_int(1);
     int i, encontrado = 0;
     Mutexptr mutex = NULL;
@@ -548,13 +557,13 @@ int sis_unlock() {
     // Buscar el mutex
     for (i = 0; i < NUM_MUT && !encontrado; i++) {
         if (lista_mutex[i] != NULL) {
-            if (lista_mutex[i]->id == mutexId){
+            if (lista_mutex[i]->id == mutexId) {
                 encontrado = 1;
                 mutex = lista_mutex[i];
             }
         }
     }
-    if(!encontrado){                // Si no lo encuentra finaliza con error
+    if (!encontrado) {                // Si no lo encuentra finaliza con error
         fijar_nivel_int(nivel);
         return -1;
     }
@@ -626,17 +635,18 @@ int sis_cerrar_mutex() {
             }
         }
     }
-    if(!encontrado){                // Si no lo encuentra finaliza con error
+    if (!encontrado) {                // Si no lo encuentra finaliza con error
         fijar_nivel_int(nivel);
         return -1;
     }
 
-    while(mutex->estado == BLOQUEADO){  // Si mutex bloqueado, desbloquearlo
-        unlock(mutex->id);
+    while (mutex->estado == BLOQUEADO) {  // Si mutex bloqueado, desbloquearlo
+        escribir_registro(1, mutex->id);
+        sis_unlock(mutex->id);
     }
 
 
-    if(mutex->contadorProcesos == 0){
+    if (mutex->contadorProcesos == 0) {
         encontrado = 0;
         int posicion = 0;
         for (i = 0; i < NUM_MUT && !encontrado; i++) {
@@ -649,13 +659,18 @@ int sis_cerrar_mutex() {
         }
 
         free(lista_mutex[posicion]);
-        free(mutex);
         lista_mutex[posicion] = NULL;
     }
 
     return 0;
 }
 
+
+int sis_leer_caracter() {
+    char a;
+    scanf("%c", &a);
+    return a;
+}
 
 void lista_mutex_init() {
     int i;
