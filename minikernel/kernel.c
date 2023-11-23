@@ -133,11 +133,18 @@ static BCP *planificador() {
  */
 static void liberar_proceso() {
     BCP *p_proc_anterior;
+    int i;
+    for(i = 0; i < NUM_MUT_PROC; i++){
+        if(p_proc_actual->descriptoresMutex[i] != -1){
+            escribir_registro(1, (long)p_proc_actual->descriptoresMutex[i]);
+            sis_cerrar_mutex();
+        }
+    }
+
 
     liberar_imagen(p_proc_actual->info_mem); /* liberar mapa */
 
-    p_proc_actual->estado = TERMINADO;
-    eliminar_primero(&lista_listos); /* proc. fuera de listos */
+    p_proc_actual->estado = TERMINADO;    eliminar_primero(&lista_listos); /* proc. fuera de listos */
 
     /* Realizar cambio de contexto */
     p_proc_anterior = p_proc_actual;
@@ -364,7 +371,7 @@ int sis_dormir() {
     }
 
     //Variable local proceso a dormir
-    BCP proceso_dormir = p_proc_actual;
+    BCPptr proceso_dormir = p_proc_actual;
     //Seleccionar nuevo proceso a ejeuctar
     p_proc_actual = planificador();
 
@@ -381,14 +388,8 @@ int sis_dormir() {
     //Añadir proceso a lista de bloqueados
     insertar_ultimo(&lista_dormidos, proceso_dormir);
 
-
-
-
-
-
     //Cambiar contexto
-
-    cambio_contexto(&(proceso_dormir.contexto_regs), &(p_proc_actual->contexto_regs));
+    cambio_contexto(&(proceso_dormir->contexto_regs), &(p_proc_actual->contexto_regs));
 
 
     //Vuelves a permitir interrupciones
@@ -549,7 +550,7 @@ int sis_lock() {
     if (mutex->estado == UNLOCKED) {
         mutex->proceso = p_proc_actual;
         mutex->estado = LOCKED;
-        if (mutex->tipo == RECURSIVO)mutex->bloqueos++;
+        mutex->bloqueos++;
         fijar_nivel_int(nivel);
         return 0;
     }
@@ -560,12 +561,13 @@ int sis_lock() {
         }
         mutex->contadorProcesos++;
         p_proc_actual->estado = BLOQUEADO;// Bloquear proceso
+        BCPptr proceso = p_proc_actual;
+        p_proc_actual = planificador();
         eliminar_primero(&lista_listos);
         insertar_ultimo(&mutex->lista_Procesos_Esperando,
                         p_proc_actual);   // Insertar proceso en lista de bloqueados por el mutex
         // Cambiar contexto
-        BCPptr proceso = p_proc_actual;
-        p_proc_actual = planificador();
+
         cambio_contexto(&(proceso->contexto_regs), &(p_proc_actual->contexto_regs));
         fijar_nivel_int(nivel);
         return 0;
@@ -576,13 +578,15 @@ int sis_lock() {
         return 0;
     }
     mutex->contadorProcesos++;
-    p_proc_actual->estado = BLOQUEADO;                                  // Bloquear proceso
+    p_proc_actual->estado = BLOQUEADO;
+    BCPptr proceso = p_proc_actual;
+    p_proc_actual = planificador();
+    // Bloquear proceso
     eliminar_primero(&lista_listos);
     // Insertar proceso en lista de bloqueados por el mutex
     insertar_ultimo(&mutex->lista_Procesos_Esperando, p_proc_actual);
     // Cambiar contexto
-    BCPptr proceso = p_proc_actual;
-    p_proc_actual = planificador();
+
     cambio_contexto(&(proceso->contexto_regs), &(p_proc_actual->contexto_regs));
     fijar_nivel_int(nivel);
 
@@ -630,7 +634,7 @@ int sis_unlock() {
                 mutex->contadorProcesos--;
                 BCPptr procesoLiberado = mutex->lista_Procesos_Esperando.primero;
                 procesoLiberado->estado = LISTO;
-                eliminar_primero(&mutex->lista_Procesos_Esperando);
+                eliminar_primero(&(mutex->lista_Procesos_Esperando));
                 insertar_ultimo(&lista_listos, procesoLiberado);
                 mutex->proceso = procesoLiberado;
                 fijar_nivel_int(nivel);
@@ -708,8 +712,8 @@ int sis_cerrar_mutex() {
     }
 
     while (mutex->estado == BLOQUEADO) {  // Si mutex bloqueado, desbloquearlo
-        escribir_registro(1, mutex->id);
-        sis_unlock(mutex->id);
+        escribir_registro(1, mutexId);
+        sis_unlock();
     }
 
 
@@ -725,8 +729,8 @@ int sis_cerrar_mutex() {
             }
         }
 
+        escribir_registro(1, mutexId);
         free(lista_mutex[posicion]);
-        lista_mutex[posicion] = NULL;
     }
 
     encontrado = 0;
