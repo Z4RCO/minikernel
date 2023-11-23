@@ -23,16 +23,16 @@
 
 #include "servicios.h"
 
-int main(){
+int main() {
 
-	printf("init: comienza\n");
+    printf("init: comienza\n");
 
 /* EJEMPLO DE PRUEBA INICIAL QUE YA FUNCIONA PUESTO QUE CORRESPONDE CON LA
 FUNCIONALIDAD YA IMPLEMENTADA EN EL MATERIAL DE APOYO. UNA VEZ QUE IMPLEMENTE
 ALGO COMENTE ESTA PARTE Y DESCOMENTE LA PRUEBA CORRESPONDIENTE */
 
-    if (crear_proceso("prueba_mutex1")<0)
-        printf("Error creando prueba_mutex1\n");
+    if (crear_proceso("prueba_mutex2") < 0)
+        printf("Error creando prueba_mutex2\n");
 
 
 
@@ -77,6 +77,6 @@ ALGO COMENTE ESTA PARTE Y DESCOMENTE LA PRUEBA CORRESPONDIENTE */
 		printf("Error creando prueba_term\n");
 */
 
-	printf("init: termina\n");
-	return 0; 
+    printf("init: termina\n");
+    return 0;
 }
