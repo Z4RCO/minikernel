@@ -680,6 +680,12 @@ int sis_cerrar_mutex() {
         sis_unlock(mutex->id);
     }
 
+    for(i = 0, encontrado = 0; i< NUM_MUT && !encontrado; ++i){
+        if(p_proc_actual->descriptoresMutex[i] == mutex->id){
+            p_proc_actual->descriptoresMutex[i] = -1;
+            encontrado = 1;
+        }
+    }
 
     if (mutex->contadorProcesos == 0) {
         encontrado = 0;
