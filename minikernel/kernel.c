@@ -453,7 +453,8 @@ int sis_crear_mutex() {
     mutex->tipo = tipo;
     mutex->proc_esperando = 0;
     mutex->estado = UNLOCKED;
-
+    mutex->bloqueos = 0;
+    mutex->contadorProcesos = 0;
 
     // Buscar posicion libre en la lista
     int posicion = 0;
@@ -462,7 +463,7 @@ int sis_crear_mutex() {
         if (lista_mutex[i] == NULL)encontrado = 1;
         posicion = i;
     }
-
+    printf("CREAR MUTEX %d\n", posicion);
     mutex->id = posicion;
     lista_mutex[posicion] = mutex;
 
@@ -484,6 +485,17 @@ int sis_abrir_mutex() {
         }
     }
     if (!encontrado) {
+        fijar_nivel_int(nivel);
+        return -1;
+    }
+
+    for(i = 0, encontrado = 0; i < NUM_MUT_PROC && !encontrado; ++i ){
+        if(p_proc_actual->descriptoresMutex[i] == -1){
+            encontrado = 1;
+            p_proc_actual->descriptoresMutex[i] = mutex->id;
+        }
+    }
+    if(!encontrado){
         fijar_nivel_int(nivel);
         return -1;
     }
