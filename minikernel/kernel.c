@@ -133,6 +133,14 @@ static BCP *planificador() {
  */
 static void liberar_proceso() {
     BCP *p_proc_anterior;
+    int i;
+    for(i = 0; i < NUM_MUT_PROC; ++i){
+        if(p_proc_actual->descriptoresMutex[i] != -1){
+            escribir_registro(1, p_proc_actual->descriptoresMutex[i]);
+            sis_cerrar_mutex();
+        }
+    }
+
 
     liberar_imagen(p_proc_actual->info_mem); /* liberar mapa */
 
@@ -463,10 +471,12 @@ int sis_crear_mutex() {
         if (lista_mutex[i] == NULL)encontrado = 1;
         posicion = i;
     }
-    printf("CREAR MUTEX %d\n", posicion);
+
     mutex->id = posicion;
     lista_mutex[posicion] = mutex;
 
+    escribir_registro(1, (long)mutex->nombre);
+    sis_abrir_mutex();
     fijar_nivel_int(nivel);             // Devolver nivel al anterior
     return mutex->id;
 }
@@ -474,16 +484,18 @@ int sis_crear_mutex() {
 int sis_abrir_mutex() {
     int nivel = fijar_nivel_int(1);
     char *nombre = (char *) leer_registro(1);
-    int encontrado = 0, i;
+    int encontrado, i;
     Mutexptr mutex = NULL;
-    for (i = 0; i < NUM_MUT && !encontrado; i++) {
-        if (&lista_mutex[i] != NULL) {
-            if (!strcmp(lista_mutex[i]->nombre, nombre)) {
+
+    for (i = 0, encontrado = 0; i < NUM_MUT && !encontrado; i++) {
+        if (lista_mutex[i] != NULL) {
+            if (!strcmp(lista_mutex[i]->nombre, nombre)){
                 encontrado = 1;
                 mutex = lista_mutex[i];
             }
         }
     }
+
     if (!encontrado) {
         fijar_nivel_int(nivel);
         return -1;
@@ -503,14 +515,15 @@ int sis_abrir_mutex() {
     return mutex->id;
 }
 
+
 int sis_lock() {
     int nivel = fijar_nivel_int(1);
     unsigned int mutexId = (unsigned int) leer_registro(1);
-    int i, encontrado = 0;
+    int i, encontrado;
     Mutexptr mutex = NULL;
 
     // Buscar el mutex
-    for (i = 0; i < NUM_MUT && !encontrado; i++) {
+    for (i = 0, encontrado = 0; i < NUM_MUT && !encontrado; i++) {
         if (lista_mutex[i] != NULL) {
             if (lista_mutex[i]->id == mutexId) {
                 encontrado = 1;
@@ -523,8 +536,18 @@ int sis_lock() {
         return -1;
     }
 
+    for(i = 0, encontrado = 0; i < NUM_MUT_PROC && !encontrado; ++i){
+        if(p_proc_actual->descriptoresMutex[i] == mutexId)encontrado = 1;
+    }
+
+    if (!encontrado) {                // Si no lo encuentra finaliza con error
+        fijar_nivel_int(nivel);
+        return -2;
+    }
+
     if (mutex->estado == UNLOCKED) {
         mutex->estado = LOCKED;
+        *mutex->proceso = *p_proc_actual;
         if (mutex->tipo == RECURSIVO)mutex->bloqueos++;
         fijar_nivel_int(nivel);
         return 0;
@@ -582,12 +605,12 @@ int sis_unlock() {
 
     if (mutex->proceso != p_proc_actual) {
         fijar_nivel_int(nivel);
-        return -1;
+        return -2;
     }
     if (mutex->tipo == NO_RECURSIVO) {
         if (mutex->estado == UNLOCKED) {
             fijar_nivel_int(nivel);
-            return -1;
+            return -3;
         } else {
             if (mutex->lista_Procesos_Esperando.primero == NULL) {
                 mutex->estado = UNLOCKED;
@@ -605,12 +628,12 @@ int sis_unlock() {
     } else {
         if (mutex->estado == UNLOCKED) {
             fijar_nivel_int(nivel);
-            return -1;
+            return -4;
         }
         if (mutex->bloqueos > 1) {
             mutex->bloqueos--;
             fijar_nivel_int(nivel);
-            return -1;
+            return -5;
         } else {
             mutex->bloqueos = 0;
             if (mutex->lista_Procesos_Esperando.primero == NULL) {
