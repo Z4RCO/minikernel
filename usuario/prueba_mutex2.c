@@ -11,6 +11,7 @@
  * Programa de usuario que realiza una prueba de los mutex
  *
  */
+
 #include "servicios.h"
 
 int main(){
@@ -27,9 +28,9 @@ int main(){
 
 	if ((desc2=crear_mutex("m2", RECURSIVO))<0)
 		printf("error creando m2. NO DEBE APARECER\n");
-    int desc3;
-	if ((desc3 = lock(desc1))<0)
-		printf("error %d en lock de mutex. NO DEBE APARECER\n", desc3);
+
+	if (lock(desc1)<0)
+		printf("error en lock de mutex. NO DEBE APARECER\n");
 
 	/* segundo lock sobre sem�foro no recursivo -> error */
 	if (lock(desc1)<0)
@@ -63,6 +64,7 @@ int main(){
 		printf("error en unlock de mutex. NO DEBE APARECER\n");
 
 	printf("prueba_mutex duerme 1 seg.: debe ejecutar mutex1 ya que se ha liberado el mutex m2\n");
+
 	dormir(1);
 
 	printf("prueba_mutex termina: debe ejecutar mutex2 ya que el cierre impl�cito de m1 debe despertarlo y mutex1 est� dormido\n");
