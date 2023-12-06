@@ -71,7 +71,7 @@ typedef struct Mutex_t {
     int proc_esperando;                     // contador de procesos esperando
     lista_BCPs lista_Procesos_Esperando;    // procesos esperando
     int estado;                             // bloqueado o desbloqueado;
-    BCPptr proceso;                         // Proceso propietario
+    int proceso;                            // ID del Proceso propietario
     int id;                                 // Desciptor de mutex
     int contadorProcesos;                   // Procesos con el mutex abierto
 
