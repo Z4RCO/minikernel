@@ -1,9 +1,9 @@
 /*
  * usuario/mutex2.c
  *
- *  Minikernel. Versión 1.0
+ *  Minikernel. Versiï¿½n 1.0
  *
- *  Fernando Pérez Costoya
+ *  Fernando Pï¿½rez Costoya
  *
  */
 
@@ -17,7 +17,7 @@
 int main(){
 	int desc1, desc2;
 
-	printf("mutex2 comienza\n");
+	printf("mutex2 comienza. Soy %d\n", obtener_id_pr());
 
 	if ((desc1=abrir_mutex("m1"))<0)
 		printf("error abriendo m1. NO DEBE APARECER\n");
@@ -28,7 +28,7 @@ int main(){
 	if (lock(desc1)<0)
 		printf("error en lock de mutex. NO DEBE APARECER\n");
 
-	printf("mutex2 ha obtenido mutex m1, se bloqueará a continuación al intentar obtener m2\n");
+	printf("mutex2 ha obtenido mutex m1, se bloquearï¿½ a continuaciï¿½n al intentar obtener m2\n");
 
 	if (lock(desc2)<0)
 		printf("error en lock de mutex. NO DEBE APARECER\n");

@@ -14,10 +14,10 @@
 #include "servicios.h"
 
 int main(){
-
+    int error;
 	printf("creador1 comienza\n");
-	if (crear_mutex("m1", NO_RECURSIVO)<0)
-		printf("error creando m1. NO DEBE SALIR\n");
+	if ((error = crear_mutex("m1", NO_RECURSIVO))<0)
+		printf("error %d creando m1. NO DEBE SALIR\n", error);
 	if (crear_mutex("m1", NO_RECURSIVO)<0)
 		printf("error creando m1. DEBE SALIR\n");
 

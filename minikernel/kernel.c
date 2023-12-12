@@ -380,6 +380,8 @@ int sis_dormir() {
     //Añadir proceso a lista de bloqueados
     insertar_ultimo(&lista_dormidos, proceso_dormir);
 
+
+
     //Seleccionar nuevo proceso a ejeuctar
     p_proc_actual = planificador();
 
@@ -406,52 +408,44 @@ int sis_obtener_id_pr() {
  *
  */
 int sis_crear_mutex() {
-    int nivel = fijar_nivel_int(1);
+    int nivel = fijar_nivel_int(NIVEL_1);
     char *nombre = (char *) leer_registro(1);
     int tipo = (int) leer_registro(2);
-    int encontrado = 0;
-    int i, size = 0;
+    int encontrado = 0, i, posicion;
+    BCPptr procesoBloquear;
 
     //Si el tipo es erroneo, finalizar con error -1
     if (tipo != RECURSIVO && tipo != NO_RECURSIVO)return -1;
 
+    //Si el nombre es más largo que el máximo, finalizar con error -2
     if (strlen(nombre) > MAX_NOM_MUT)
-        return -2;          //Si el nombre es más largo que el máximo, finalizar con error -2
+        return -2;
 
-
+    //Comprobar nombres duplicados
     for (i = 0; i < NUM_MUT && !encontrado; i++) {
-        if (lista_mutex[i] != NULL) {
-            if (!strcmp(nombre, lista_mutex[i]->nombre)) {
-                encontrado = 1;
-            }
-            size++;
+        if (lista_mutex[i] != NULL && !strcmp(nombre, lista_mutex[i]->nombre)) {
+            encontrado = 1;
         }
     }
-
-    if (encontrado)return -1;     // Si existe otro mutex con ese nombre, finalizar con error
-
+    if (encontrado)return -1;     // Si existe otro mutex con ese nombre, finalizar con error3
 
     //comprobar descriptores libres para el proceso
-    int *mutexes = p_proc_actual->descriptoresMutex;
-    int descriptoresLibres = NUM_MUT_PROC;
-    i = 0;
-    while (i < NUM_MUT_PROC) {
-        if (mutexes[i] != -1) {
-            descriptoresLibres--;
-        }
-        i++;
+    for (encontrado = 0, i = 0; i < NUM_MUT_PROC && !encontrado; ++i) {
+        if (p_proc_actual->descriptoresMutex[i] == -1)encontrado = 1;
     }
-    if (descriptoresLibres <= 0)return -5;               //Si no quedan descriptores libres, devuelves con error -5
+    if (!encontrado)return -5;
 
-
-    //si la lista está llena, esperar a que se libere
-    if (size == NUM_MUT) {
-        p_proc_actual->estado = BLOQUEADO;
-        insertar_ultimo(&lista_bloqueados_mutex, p_proc_actual);
-        BCPptr proceso_bloquear = p_proc_actual;
+    // Buscar huecos en la lista de Mutex del sistema
+    for (i = 0, encontrado = 0; i < NUM_MUT && !encontrado; ++i) {
+        if (lista_mutex[i] == NULL)encontrado = 1;
+    }
+    if (!encontrado) {
+        procesoBloquear = p_proc_actual;
+        procesoBloquear->estado = BLOQUEADO;
+        eliminar_primero(&lista_listos);
+        insertar_ultimo(&lista_bloqueados_mutex, procesoBloquear);
         p_proc_actual = planificador();
-        liberar_pila(proceso_bloquear->pila);
-        cambio_contexto(&(proceso_bloquear->contexto_regs), &(p_proc_actual->contexto_regs));
+        cambio_contexto(&(procesoBloquear->contexto_regs), &(p_proc_actual->contexto_regs));
         fijar_nivel_int(nivel);
         return 0;
     }
@@ -464,11 +458,13 @@ int sis_crear_mutex() {
     mutex->estado = UNLOCKED;
     mutex->bloqueos = 0;
     mutex->contadorProcesos = 0;
+    mutex->proceso = -1;
+    mutex->lista_Procesos_Esperando.primero = NULL;
+    mutex->lista_Procesos_Esperando.ultimo = NULL;
 
     // Buscar posicion libre en la lista
-    int posicion = 0;
-    encontrado = 0;
-    for (int i = 0; i < NUM_MUT && !encontrado; i++) {
+    posicion = 0;
+    for (int i = 0, encontrado = 0; i < NUM_MUT && !encontrado; i++) {
         if (lista_mutex[i] == NULL)encontrado = 1;
         posicion = i;
     }
@@ -483,11 +479,12 @@ int sis_crear_mutex() {
 }
 
 int sis_abrir_mutex() {
-    int nivel = fijar_nivel_int(1);
     char *nombre = (char *) leer_registro(1);
+    int nivel = fijar_nivel_int(NIVEL_1);
     int encontrado, i;
     Mutexptr mutex = NULL;
 
+    //Comprobar que existe el mutex
     for (i = 0, encontrado = 0; i < NUM_MUT && !encontrado; i++) {
         if (lista_mutex[i] != NULL) {
             if (!strcmp(lista_mutex[i]->nombre, nombre)) {
@@ -496,12 +493,12 @@ int sis_abrir_mutex() {
             }
         }
     }
-
     if (!encontrado) {
         fijar_nivel_int(nivel);
         return -1;
     }
 
+    //Comprobar que el proceso tiene hueco en su lista
     for (i = 0, encontrado = 0; i < NUM_MUT_PROC && !encontrado; ++i) {
         if (p_proc_actual->descriptoresMutex[i] == -1) {
             encontrado = 1;
@@ -512,14 +509,15 @@ int sis_abrir_mutex() {
         fijar_nivel_int(nivel);
         return -1;
     }
+    mutex->contadorProcesos++;
     fijar_nivel_int(nivel);
     return mutex->id;
 }
 
 
 int sis_lock() {
-    int nivel = fijar_nivel_int(1);
     unsigned int mutexId = (unsigned int) leer_registro(1);
+    int nivel = fijar_nivel_int(NIVEL_1);
     int i, encontrado;
     Mutexptr mutex = NULL;
 
@@ -537,6 +535,9 @@ int sis_lock() {
         return -1;
     }
 
+    printf("LOCK DE MUTEX %s\n", mutex->nombre);
+
+
     // Comprobar si el proceso lo tiene abierto
     for (i = 0, encontrado = 0; i < NUM_MUT_PROC && !encontrado; ++i) {
         if (p_proc_actual->descriptoresMutex[i] == mutexId)encontrado = 1;
@@ -546,6 +547,7 @@ int sis_lock() {
         return -2;
     }
 
+    //Si está desbloqueado, bloquearlo
     if (mutex->estado == UNLOCKED) {
         mutex->estado = LOCKED;
         mutex->proceso = p_proc_actual->id;
@@ -554,40 +556,27 @@ int sis_lock() {
         fijar_nivel_int(nivel);
         return 0;
     } else {
-        if (mutex->tipo == NO_RECURSIVO) {
-            if (mutex->proceso == p_proc_actual->id) { //Si tú eres el dueño, error
+        if (mutex->proceso == p_proc_actual->id) {
+            if (mutex->tipo == NO_RECURSIVO) {
                 fijar_nivel_int(nivel);
                 return -1;
-            }
-
-            // Si no, bloquear proceso
-            mutex->proc_esperando++;
-
-            BCPptr proceso_bloquear = p_proc_actual;
-            proceso_bloquear->estado = BLOQUEADO;
-
-            eliminar_primero(&lista_listos);
-            insertar_ultimo(&(mutex->lista_Procesos_Esperando), proceso_bloquear);
-
-            p_proc_actual = planificador();
-            cambio_contexto(&(proceso_bloquear->contexto_regs), &(p_proc_actual->contexto_regs));
-
-            fijar_nivel_int(nivel);
-            return 0;
-        } else {
-            if (mutex->proceso == p_proc_actual->id) { //El proceso actual bloqueó el mutex
+            } else {
                 mutex->bloqueos++;
                 fijar_nivel_int(nivel);
                 return 0;
             }
-
+        } else {
+            printf("Soy %d y me bloqueo en el mutex %s.\n", p_proc_actual->id, mutex->nombre);
             mutex->proc_esperando++;
 
             BCPptr proceso_bloquear = p_proc_actual;
             proceso_bloquear->estado = BLOQUEADO;
 
+
             eliminar_primero(&lista_listos);
             insertar_ultimo(&(mutex->lista_Procesos_Esperando), proceso_bloquear);
+
+            BCPptr procesoA = mutex->lista_Procesos_Esperando.primero;
 
             p_proc_actual = planificador();
             cambio_contexto(&(proceso_bloquear->contexto_regs), &(p_proc_actual->contexto_regs));
@@ -596,6 +585,7 @@ int sis_lock() {
             return 0;
         }
     }
+
 }
 
 int sis_unlock() {
@@ -604,7 +594,7 @@ int sis_unlock() {
     int i, encontrado;
     Mutexptr mutex;
 
-    // Comprobar si edxiste el mutex
+    // Comprobar si existe el mutex
     for (i = 0, encontrado = 0; i < NUM_MUT && !encontrado; i++) {
         if (lista_mutex[i] != NULL) {
             if (lista_mutex[i]->id == mutexId) {
@@ -617,67 +607,58 @@ int sis_unlock() {
         fijar_nivel_int(nivel);
         return -1;
     }
+    printf("UNLOCK DE MUTEX %s\n", mutex->nombre);
 
     if (mutex->proceso != p_proc_actual->id) { // Si no eres el dueño, finalizar con error
         fijar_nivel_int(nivel);
         return -2;
     }
-    if (mutex->tipo == NO_RECURSIVO) {
-        if (mutex->estado == UNLOCKED) {
-            fijar_nivel_int(nivel);
-            return -3;
-        } else {
-            if (mutex->proc_esperando == 0) {
-                mutex->estado = UNLOCKED;
-                mutex->proceso = -1;
-                fijar_nivel_int(nivel);
-                return 0;
-            } else {
-                BCPptr procesoLiberado = (mutex->lista_Procesos_Esperando).primero;
-                mutex->proc_esperando--;
-                procesoLiberado->estado = LISTO;
-                mutex->proceso = procesoLiberado->id;
-                eliminar_primero(&mutex->lista_Procesos_Esperando);
-                insertar_ultimo(&lista_listos, procesoLiberado);
-                fijar_nivel_int(nivel);
-                return 0;
-            }
-        }
-    } else {
-        if (mutex->estado == UNLOCKED) { // Si unlocked, dar error
-            fijar_nivel_int(nivel);
-            return -4;
-        }
-        if (mutex->bloqueos > 1) {
-            mutex->bloqueos--;
-            fijar_nivel_int(nivel);
-            return 0;
-        } else {
-            mutex->bloqueos = 0;
-            if (mutex->proc_esperando == 0) {
-                mutex->estado = UNLOCKED;
-                mutex->proceso = -1;
-                fijar_nivel_int(nivel);
-                return 0;
-            } else {
-                BCPptr procesoLiberado = (mutex->lista_Procesos_Esperando).primero;
-                mutex->proc_esperando--;
-                procesoLiberado->estado = LISTO;
-                mutex->proceso = procesoLiberado->id;
-                eliminar_primero(&mutex->lista_Procesos_Esperando);
-                insertar_ultimo(&lista_listos, procesoLiberado);
-                fijar_nivel_int(nivel);
-                return 0;
-            }
-        }
 
+    if (mutex->estado == UNLOCKED) {
+        fijar_nivel_int(nivel);
+        return -3;
     }
 
+    if (mutex->tipo == NO_RECURSIVO && mutex->proc_esperando == 0) {
+        mutex->estado = UNLOCKED;
+        mutex->proceso = -1;
+        fijar_nivel_int(nivel);
+        return 0;
+    }
+    if (mutex->tipo == RECURSIVO && mutex->bloqueos > 1) {
+        mutex->bloqueos--;
+        fijar_nivel_int(nivel);
+        return 0;
 
+    }
+    if (mutex->proc_esperando > 0) {
+        mutex->proc_esperando--;
+        BCPptr procesoLiberado = (mutex->lista_Procesos_Esperando).primero;
+        mutex->proceso = procesoLiberado->id;
+        procesoLiberado->estado = LISTO;
+
+
+
+        eliminar_primero(&(mutex->lista_Procesos_Esperando));
+        insertar_ultimo(&lista_listos, procesoLiberado);
+
+//        printf("Estado proceso desbloquear2:%d, %d, %p, %p, %p, %d\n", procesoLiberado->id, procesoLiberado->estado,
+//               procesoLiberado->pila,
+//               procesoLiberado->siguiente, procesoLiberado->info_mem, procesoLiberado->contexto_regs.registros[0]);
+        fijar_nivel_int(nivel);
+        return 0;
+    }
+    if (mutex->tipo == RECURSIVO && mutex->proc_esperando == 0) {
+        mutex->estado = UNLOCKED;
+        mutex->bloqueos = 0;
+        mutex->proceso = -1;
+        fijar_nivel_int(nivel);
+        return 0;
+    }
 }
 
 int sis_cerrar_mutex() {
-    int nivel = fijar_nivel_int(1);
+    int nivel = fijar_nivel_int(NIVEL_1);
     unsigned int mutexId = (unsigned int) leer_registro(1);
     int i, encontrado = 0;
     Mutexptr mutex = NULL;
@@ -696,34 +677,42 @@ int sis_cerrar_mutex() {
         return -1;
     }
 
+    //Mientras que esté bloqueado, desbloquearlo
     while (mutex->estado == BLOQUEADO) {  // Si mutex bloqueado, desbloquearlo
         escribir_registro(1, mutex->id);
         sis_unlock(mutex->id);
     }
-
-    for (i = 0, encontrado = 0; i < NUM_MUT && !encontrado; ++i) {
+    //Buscarlo en la lista de Mutex del proceso y eliminarlo de la lista
+    for (i = 0, encontrado = 0; i < NUM_MUT_PROC && !encontrado; ++i) {
         if (p_proc_actual->descriptoresMutex[i] == mutex->id) {
             p_proc_actual->descriptoresMutex[i] = -1;
             encontrado = 1;
         }
     }
 
+    //Si nadie está usando en mutex, liberarlo
     if (mutex->contadorProcesos == 0) {
         encontrado = 0;
         int posicion = 0;
         for (i = 0; i < NUM_MUT && !encontrado; i++) {
-            if (lista_mutex[i] != NULL) {
-                if (lista_mutex[i]->id == mutexId) {
-                    encontrado = 1;
-                    posicion = i;
-                }
+            if (lista_mutex[i] != NULL && lista_mutex[i]->id == mutexId) {
+                encontrado = 1;
+                posicion = i;
             }
         }
 
         free(lista_mutex[posicion]);
         lista_mutex[posicion] = NULL;
-    }
 
+        //Comprobar si hay procesos bloqueados esperando por un mutex
+        if (lista_bloqueados_mutex.primero != NULL) {
+            BCPptr procesoLiberar = lista_bloqueados_mutex.primero;
+            procesoLiberar->estado = LISTO;
+            eliminar_primero(&lista_bloqueados_mutex);
+            insertar_ultimo(&lista_listos, procesoLiberar);
+        }
+    }
+    fijar_nivel_int(nivel);
     return 0;
 }
 
