@@ -25,7 +25,7 @@ int main() {
 
     if (lock(desc) < 0)
         printf("error en lock de mutex. NO DEBE APARECER\n");
-
+    printf("Despierta mutex1\n");
     /* segundo lock sobre sem�foro recursivo -> correcto */
     if (lock(desc) < 0)
         printf("error en lock de mutex. NO DEBE APARECER\n");

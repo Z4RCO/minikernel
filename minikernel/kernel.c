@@ -676,11 +676,12 @@ int sis_cerrar_mutex() {
         fijar_nivel_int(nivel);
         return -1;
     }
-
+    printf("Se cierra un mutex\n");
     //Mientras que esté bloqueado, desbloquearlo
-    while (mutex->estado == BLOQUEADO) {  // Si mutex bloqueado, desbloquearlo
-        escribir_registro(1, mutex->id);
-        sis_unlock(mutex->id);
+    for(i = 0; i < 2; ++i){
+        printf("Proceso: %d, actual: %d\n", p_proc_actual->id, mutex->proceso);
+        escribir_registro(1, (long)mutex->id);
+        printf("Return: %d\n", sis_unlock());
     }
     //Buscarlo en la lista de Mutex del proceso y eliminarlo de la lista
     for (i = 0, encontrado = 0; i < NUM_MUT_PROC && !encontrado; ++i) {
