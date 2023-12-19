@@ -120,6 +120,7 @@ static void espera_int() {
  * Funci�n de planificacion que implementa un algoritmo FIFO.
  */
 static BCP *planificador() {
+    if (lista_bloqueados_mutex.primero != NULL)printf("Bloqueado: %d\n", lista_bloqueados_mutex.primero->id);
     while (lista_listos.primero == NULL)
         espera_int();        /* No hay nada que hacer */
     return lista_listos.primero;
@@ -155,6 +156,7 @@ static void liberar_proceso() {
            p_proc_anterior->id, p_proc_actual->id);
 
     liberar_pila(p_proc_anterior->pila);
+
     cambio_contexto(NULL, &(p_proc_actual->contexto_regs));
     return; /* no deber�a llegar aqui */
 }
@@ -414,6 +416,8 @@ int sis_crear_mutex() {
     int encontrado = 0, i, posicion;
     BCPptr procesoBloquear;
 
+
+
     //Si el tipo es erroneo, finalizar con error -1
     if (tipo != RECURSIVO && tipo != NO_RECURSIVO)return -1;
 
@@ -435,11 +439,9 @@ int sis_crear_mutex() {
     }
     if (!encontrado)return -5;
 
-    // Buscar huecos en la lista de Mutex del sistema
-    for (i = 0, encontrado = 0; i < NUM_MUT && !encontrado; ++i) {
-        if (lista_mutex[i] == NULL)encontrado = 1;
-    }
-    if (!encontrado) {
+
+    if (numMutex >= NUM_MUT) {
+        printf("Soy %d y me bloqueo .\n", p_proc_actual->id);
         procesoBloquear = p_proc_actual;
         procesoBloquear->estado = BLOQUEADO;
         eliminar_primero(&lista_listos);
@@ -450,9 +452,12 @@ int sis_crear_mutex() {
         return 0;
     }
 
+    numMutex++;
     // Inicializar el mutex
     Mutexptr mutex = (Mutexptr) malloc(sizeof(Mutex));
-    mutex->nombre = nombre;
+    mutex->nombre = (char*)malloc(MAX_NOM_MUT * sizeof(char));
+    strcpy(mutex->nombre, nombre);
+
     mutex->tipo = tipo;
     mutex->proc_esperando = 0;
     mutex->estado = UNLOCKED;
@@ -521,6 +526,7 @@ int sis_lock() {
     int i, encontrado;
     Mutexptr mutex = NULL;
 
+
     // Comprobar si existe el mutex
     for (i = 0, encontrado = 0; i < NUM_MUT && !encontrado; i++) {
         if (lista_mutex[i] != NULL) {
@@ -534,6 +540,7 @@ int sis_lock() {
         fijar_nivel_int(nivel);
         return -1;
     }
+
 
     printf("LOCK DE MUTEX %s\n", mutex->nombre);
 
@@ -566,7 +573,6 @@ int sis_lock() {
                 return 0;
             }
         } else {
-            printf("Soy %d y me bloqueo en el mutex %s.\n", p_proc_actual->id, mutex->nombre);
             mutex->proc_esperando++;
 
             BCPptr proceso_bloquear = p_proc_actual;
@@ -576,7 +582,6 @@ int sis_lock() {
             eliminar_primero(&lista_listos);
             insertar_ultimo(&(mutex->lista_Procesos_Esperando), proceso_bloquear);
 
-            BCPptr procesoA = mutex->lista_Procesos_Esperando.primero;
 
             p_proc_actual = planificador();
             cambio_contexto(&(proceso_bloquear->contexto_regs), &(p_proc_actual->contexto_regs));
@@ -638,7 +643,6 @@ int sis_unlock() {
         procesoLiberado->estado = LISTO;
 
 
-
         eliminar_primero(&(mutex->lista_Procesos_Esperando));
         insertar_ultimo(&lista_listos, procesoLiberado);
 
@@ -672,16 +676,14 @@ int sis_cerrar_mutex() {
             }
         }
     }
-    if (!encontrado) {                // Si no lo encuentra finaliza con error
+    if (!encontrado) {
         fijar_nivel_int(nivel);
         return -1;
     }
-    printf("Se cierra un mutex\n");
     //Mientras que esté bloqueado, desbloquearlo
-    for(i = 0; i < 2; ++i){
-        printf("Proceso: %d, actual: %d\n", p_proc_actual->id, mutex->proceso);
-        escribir_registro(1, (long)mutex->id);
-        printf("Return: %d\n", sis_unlock());
+    while (mutex->proceso == p_proc_actual->id) {
+        escribir_registro(1, (long) mutex->id);
+        sis_unlock();
     }
     //Buscarlo en la lista de Mutex del proceso y eliminarlo de la lista
     for (i = 0, encontrado = 0; i < NUM_MUT_PROC && !encontrado; ++i) {
@@ -690,9 +692,8 @@ int sis_cerrar_mutex() {
             encontrado = 1;
         }
     }
-
     //Si nadie está usando en mutex, liberarlo
-    if (mutex->contadorProcesos == 0) {
+    if (mutex->proceso == -1) {
         encontrado = 0;
         int posicion = 0;
         for (i = 0; i < NUM_MUT && !encontrado; i++) {
@@ -702,17 +703,30 @@ int sis_cerrar_mutex() {
             }
         }
 
-        free(lista_mutex[posicion]);
-        lista_mutex[posicion] = NULL;
-
         //Comprobar si hay procesos bloqueados esperando por un mutex
         if (lista_bloqueados_mutex.primero != NULL) {
             BCPptr procesoLiberar = lista_bloqueados_mutex.primero;
+
             procesoLiberar->estado = LISTO;
             eliminar_primero(&lista_bloqueados_mutex);
             insertar_ultimo(&lista_listos, procesoLiberar);
+            lista_mutex[i]->proceso = procesoLiberar->id;
+            cambio_contexto(&(p_proc_actual->contexto_regs), &(procesoLiberar->contexto_regs));
+            escribir_registro(0,lista_mutex[i]->id);
+            cambio_contexto(&(procesoLiberar->contexto_regs), &(p_proc_actual->contexto_regs));
+
         }
+        else{
+            numMutex--;
+            free(lista_mutex[posicion]);
+            lista_mutex[posicion] = NULL;
+
+        }
+
+
+
     }
+
     fijar_nivel_int(nivel);
     return 0;
 }
@@ -729,6 +743,10 @@ void lista_mutex_init() {
     for (i = 0; i < NUM_MUT; i++) {
         lista_mutex[i] = NULL;
     }
+    numMutex = 0;
+
+    lista_bloqueados_mutex.primero = NULL;
+    lista_bloqueados_mutex.ultimo = NULL;
 }
 
 

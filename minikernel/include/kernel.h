@@ -106,7 +106,12 @@ lista_BCPs lista_listos = {NULL, NULL};
 lista_BCPs lista_dormidos = {NULL, NULL};
 
 //TODO nueva lista de mutex del sistema
-Mutexptr lista_mutex[NUM_MUT]; //TODO inicializar lista mutex
+Mutexptr lista_mutex[NUM_MUT];
+
+//TODO mutex creados en el sistema
+int numMutex;
+
+
 
 lista_BCPs lista_bloqueados_mutex = {NULL, NULL};
 
