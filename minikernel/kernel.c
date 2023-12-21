@@ -122,7 +122,6 @@ static void espera_int() {
 static BCP *planificador() {
     while (lista_listos.primero == NULL)
         espera_int();        /* No hay nada que hacer */
-    lista_listos.primero->ticksRestantes = TICKS_POR_RODAJA;
     return lista_listos.primero;
 }
 
@@ -232,19 +231,6 @@ static void int_reloj() {
         }
         dormidoActual = dormidoActual->siguiente;
     }
-    if(lista_listos.primero == lista_listos.ultimo)return;
-    if(--(p_proc_actual->ticksRestantes) == 0){
-        int nivel = fijar_nivel_int(NIVEL_1);
-        if(nivel == NIVEL_1)return;
-        else fijar_nivel_int(nivel);
-
-        BCPptr anterior = p_proc_actual;
-        eliminar_primero(&lista_listos);
-        insertar_ultimo(&lista_listos, anterior);
-        p_proc_actual = planificador();
-        cambio_contexto(&(anterior->contexto_regs), &(p_proc_actual->contexto_regs));
-    }
-
     return;
 }
 
@@ -307,7 +293,6 @@ static int crear_tarea(char *prog) {
         for (i = 0; i < NUM_MUT_PROC; i++) {
             p_proc->descriptoresMutex[i] = -1;
         }
-        p_proc->ticksRestantes = TICKS_POR_RODAJA;
 
         /* lo inserta al final de cola de listos */
         insertar_ultimo(&lista_listos, p_proc);
@@ -448,7 +433,6 @@ int sis_crear_mutex() {
 
 
     if (numMutex >= NUM_MUT) {
-        printf("Soy %d y me bloqueo .\n", p_proc_actual->id);
         procesoBloquear = p_proc_actual;
         procesoBloquear->estado = BLOQUEADO;
         eliminar_primero(&lista_listos);
@@ -719,11 +703,23 @@ int sis_cerrar_mutex() {
             eliminar_primero(&lista_bloqueados_mutex);
             insertar_ultimo(&lista_listos, procesoLiberar);
             lista_mutex[i]->proceso = procesoLiberar->id;
+
             cambio_contexto(&(p_proc_actual->contexto_regs), &(procesoLiberar->contexto_regs));
+            char *nombre = (char*) leer_registro(1);
+            for (i = 0, encontrado = 0; i < NUM_MUT && !encontrado; i++) {
+                if (lista_mutex[i] != NULL && !strcmp(nombre, lista_mutex[i]->nombre)) {
+                    encontrado = 1;
+                }
+            }
+            if (encontrado){
+                escribir_registro(0, -1);
+                return -1;
+            }
             free(mutex->nombre);
             mutex->nombre = malloc(sizeof(char) * NUM_MUT);
-            strcpy(mutex->nombre, (char*) leer_registro(1));
+            strcpy(mutex->nombre, nombre);
             escribir_registro(0,lista_mutex[i]->id);
+
             cambio_contexto(&(procesoLiberar->contexto_regs), &(p_proc_actual->contexto_regs));
 
         }

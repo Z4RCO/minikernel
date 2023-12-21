@@ -46,9 +46,6 @@ typedef struct BCP_t {
     //TODO nuevos campos mutex
     int descriptoresMutex[NUM_MUT_PROC]; /*Lista de descriptores de mutex asociada al proceso*/
 
-    //TODO ticks restantes en la rodaja
-    unsigned int ticksRestantes;
-
 } BCP;
 
 
