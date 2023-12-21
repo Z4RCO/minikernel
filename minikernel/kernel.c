@@ -120,9 +120,9 @@ static void espera_int() {
  * Funci�n de planificacion que implementa un algoritmo FIFO.
  */
 static BCP *planificador() {
-    if (lista_bloqueados_mutex.primero != NULL)printf("Bloqueado: %d\n", lista_bloqueados_mutex.primero->id);
     while (lista_listos.primero == NULL)
         espera_int();        /* No hay nada que hacer */
+    lista_listos.primero->ticksRestantes = TICKS_POR_RODAJA;
     return lista_listos.primero;
 }
 
@@ -227,17 +227,23 @@ static void int_reloj() {
         }
         if (dormidoActual->segundosDormido == 0) {
             dormidoActual->estado = LISTO;
-
-            //Eliminar dormidoActual de la lista de bloqueados
             eliminar_elem(&lista_dormidos, dormidoActual);
-
-            //Añadir dormidoActual a lista de listos
             insertar_ultimo(&lista_listos, dormidoActual);
-
         }
         dormidoActual = dormidoActual->siguiente;
     }
+    if(lista_listos.primero == lista_listos.ultimo)return;
+    if(--(p_proc_actual->ticksRestantes) == 0){
+        int nivel = fijar_nivel_int(NIVEL_1);
+        if(nivel == NIVEL_1)return;
+        else fijar_nivel_int(nivel);
 
+        BCPptr anterior = p_proc_actual;
+        eliminar_primero(&lista_listos);
+        insertar_ultimo(&lista_listos, anterior);
+        p_proc_actual = planificador();
+        cambio_contexto(&(anterior->contexto_regs), &(p_proc_actual->contexto_regs));
+    }
 
     return;
 }
@@ -301,6 +307,7 @@ static int crear_tarea(char *prog) {
         for (i = 0; i < NUM_MUT_PROC; i++) {
             p_proc->descriptoresMutex[i] = -1;
         }
+        p_proc->ticksRestantes = TICKS_POR_RODAJA;
 
         /* lo inserta al final de cola de listos */
         insertar_ultimo(&lista_listos, p_proc);
@@ -455,6 +462,7 @@ int sis_crear_mutex() {
     numMutex++;
     // Inicializar el mutex
     Mutexptr mutex = (Mutexptr) malloc(sizeof(Mutex));
+
     mutex->nombre = (char*)malloc(MAX_NOM_MUT * sizeof(char));
     strcpy(mutex->nombre, nombre);
 
@@ -712,12 +720,16 @@ int sis_cerrar_mutex() {
             insertar_ultimo(&lista_listos, procesoLiberar);
             lista_mutex[i]->proceso = procesoLiberar->id;
             cambio_contexto(&(p_proc_actual->contexto_regs), &(procesoLiberar->contexto_regs));
+            free(mutex->nombre);
+            mutex->nombre = malloc(sizeof(char) * NUM_MUT);
+            strcpy(mutex->nombre, (char*) leer_registro(1));
             escribir_registro(0,lista_mutex[i]->id);
             cambio_contexto(&(procesoLiberar->contexto_regs), &(p_proc_actual->contexto_regs));
 
         }
         else{
             numMutex--;
+            free(mutex->nombre);
             free(lista_mutex[posicion]);
             lista_mutex[posicion] = NULL;
 

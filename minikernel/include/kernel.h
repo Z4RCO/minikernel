@@ -44,8 +44,10 @@ typedef struct BCP_t {
     unsigned int segundosDormido;    /*Segundos que tiene que estar dormido el proceso*/
 
     //TODO nuevos campos mutex
-    //TODO Inicializar cosas
     int descriptoresMutex[NUM_MUT_PROC]; /*Lista de descriptores de mutex asociada al proceso*/
+
+    //TODO ticks restantes en la rodaja
+    unsigned int ticksRestantes;
 
 } BCP;
 
@@ -110,7 +112,6 @@ Mutexptr lista_mutex[NUM_MUT];
 
 //TODO mutex creados en el sistema
 int numMutex;
-
 
 
 lista_BCPs lista_bloqueados_mutex = {NULL, NULL};

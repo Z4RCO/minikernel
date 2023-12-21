@@ -31,7 +31,7 @@ int main(){
 FUNCIONALIDAD YA IMPLEMENTADA EN EL MATERIAL DE APOYO. UNA VEZ QUE IMPLEMENTE
 ALGO COMENTE ESTA PARTE Y DESCOMENTE LA PRUEBA CORRESPONDIENTE */
 
-    if (crear_proceso("prueba_mutex2")<0)
+    if (crear_proceso("prueba_mutex1")<0)
         printf("Error creando prueba_mutex2\n");
 
 
