@@ -217,6 +217,7 @@ static void int_terminal() {
  * Tratamiento de interrupciones de reloj
  */
 static void int_reloj() {
+    int nivel;
     printk("-> TRATANDO INT. DE RELOJ\n");
     BCPptr dormidoActual = lista_dormidos.primero;
     while (dormidoActual != NULL) {
@@ -234,9 +235,11 @@ static void int_reloj() {
     if(p_proc_actual->estado == LISTO){
         if(lista_listos.primero == lista_listos.ultimo)return;
         if(--(p_proc_actual->ticksRestantes) == 0){
+            nivel = fijar_nivel_int(NIVEL_1);
             BCPptr anterior = p_proc_actual;
             eliminar_primero(&lista_listos);
             insertar_ultimo(&lista_listos, anterior);
+            fijar_nivel_int(nivel);
             p_proc_actual = planificador();
             p_proc_actual->ticksRestantes = TICKS_POR_RODAJA;
         }
