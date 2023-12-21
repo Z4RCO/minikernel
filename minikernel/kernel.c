@@ -231,6 +231,16 @@ static void int_reloj() {
         }
         dormidoActual = dormidoActual->siguiente;
     }
+    if(p_proc_actual->estado == LISTO){
+        if(lista_listos.primero == lista_listos.ultimo)return;
+        if(--(p_proc_actual->ticksRestantes) == 0){
+            BCPptr anterior = p_proc_actual;
+            eliminar_primero(&lista_listos);
+            insertar_ultimo(&lista_listos, anterior);
+            p_proc_actual = planificador();
+            p_proc_actual->ticksRestantes = TICKS_POR_RODAJA;
+        }
+    }
     return;
 }
 
@@ -294,6 +304,7 @@ static int crear_tarea(char *prog) {
             p_proc->descriptoresMutex[i] = -1;
         }
 
+        p_proc->ticksRestantes = TICKS_POR_RODAJA;
         /* lo inserta al final de cola de listos */
         insertar_ultimo(&lista_listos, p_proc);
         error = 0;
