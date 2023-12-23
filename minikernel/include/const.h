@@ -62,10 +62,10 @@
 #define INT_SW 5	/* vector usado para interrupciones software */
 
 /* frecuencia de reloj requerida (ticks/segundo) */
-#define TICK 1
+#define TICK 1000
 
 /* constante usada en implementacion de round robin */
-#define TICKS_POR_RODAJA 10
+#define TICKS_POR_RODAJA 1
 
 /* constantes usada en implementacion de mutex */
 #define NUM_MUT 16 /* numero total de mutex en el sistema */

@@ -217,8 +217,9 @@ static void int_terminal() {
  * Tratamiento de interrupciones de reloj
  */
 static void int_reloj() {
-    int nivel;
+    int nivel = fijar_nivel_int(NIVEL_3);
     printk("-> TRATANDO INT. DE RELOJ\n");
+    // Tratar procesos dormidos
     BCPptr dormidoActual = lista_dormidos.primero;
     while (dormidoActual != NULL) {
         (dormidoActual->segundosDormido)--;
@@ -232,18 +233,16 @@ static void int_reloj() {
         }
         dormidoActual = dormidoActual->siguiente;
     }
+
+
+    // Tratar Rodajas Round Robin
     if(p_proc_actual->estado == LISTO){
-        if(lista_listos.primero == lista_listos.ultimo)return;
-        if(--(p_proc_actual->ticksRestantes) == 0){
-            nivel = fijar_nivel_int(NIVEL_1);
-            BCPptr anterior = p_proc_actual;
-            eliminar_primero(&lista_listos);
-            insertar_ultimo(&lista_listos, anterior);
-            fijar_nivel_int(nivel);
-            p_proc_actual = planificador();
-            p_proc_actual->ticksRestantes = TICKS_POR_RODAJA;
+        if(p_proc_actual->ticksRestantes > 0)p_proc_actual->ticksRestantes--;
+        if(p_proc_actual->ticksRestantes == 0){
+            activar_int_SW();
         }
     }
+    fijar_nivel_int(nivel);
     return;
 }
 
@@ -266,10 +265,21 @@ static void tratar_llamsis() {
  * Tratamiento de interrupciuones software
  */
 static void int_sw() {
-
+    int nivel;
     printk("-> TRATANDO INT. SW\n");
-
-    return;
+    if(lista_listos.primero == lista_listos.ultimo){
+        p_proc_actual->ticksRestantes = TICKS_POR_RODAJA;
+    }
+    else{
+        nivel = fijar_nivel_int(NIVEL_1);
+        BCPptr anterior = p_proc_actual;
+        eliminar_primero(&lista_listos);
+        insertar_ultimo(&lista_listos, anterior);
+        p_proc_actual = planificador();
+        printf("C.CONTEXTO DE %d A %d por RR\n", anterior->id, p_proc_actual->id);
+        fijar_nivel_int(nivel);
+        cambio_contexto(&(anterior->contexto_regs), &(p_proc_actual->contexto_regs));
+    }
 }
 
 /*
@@ -792,7 +802,6 @@ int main() {
     iniciar_cont_int();        /* inicia cont. interr. */
     iniciar_cont_reloj(TICK);    /* fija frecuencia del reloj */
     iniciar_cont_teclado();        /* inici cont. teclado */
-
     iniciar_tabla_proc();        /* inicia BCPs de tabla de procesos */
 
     /* crea proceso inicial */
